@@ -10,7 +10,7 @@ namespace rajeshreeputra\ComposerDynamicPatching\Resolver;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use cweagans\Composer\Patch;
+use rajeshreeputra\ComposerDynamicPatching\Patch;
 use cweagans\Composer\PatchCollection;
 use cweagans\Composer\Resolver\ResolverInterface;
 
