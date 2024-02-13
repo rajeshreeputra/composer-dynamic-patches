@@ -85,23 +85,22 @@ You can put any part of the patches object into another JSON and load it via an 
 http://url/to/file/patches.json
 ```json
 {
-    "vendor/package-patches":     {
-            "1.0.0": {
-                "This is patch 1.0.0 - 1": "url/to/file1.patch",
-                "This is patch 1.0.0 - 2": "url/to/file2.patch"
-            },
-            "1.0.5": {
-                "This is patch 1.0.5 - 1": "url/to/file1.patch",
-                "This is patch 1.0.5 - 2": "url/to/file2.patch"
-            },
-            "1.1.2": {
-                "This is patch 1.1.2 - 1": "url/to/file1.patch",
-                "This is patch 1.1.2 - 2": "url/to/file2.patch"
-            }
-            "1.1.*": {
-                "This is patch 1.1.* - 1": "url/to/file1.patch",
-                "This is patch 1.1.* - 2": "url/to/file2.patch"
-            }
+    "vendor/package-patches": {
+        "1.0.0": {
+            "This is patch 1.0.0 - 1": "url/to/file1.patch",
+            "This is patch 1.0.0 - 2": "url/to/file2.patch"
+        },
+        "1.0.5": {
+            "This is patch 1.0.5 - 1": "url/to/file1.patch",
+            "This is patch 1.0.5 - 2": "url/to/file2.patch"
+        },
+        "1.1.2": {
+            "This is patch 1.1.2 - 1": "url/to/file1.patch",
+            "This is patch 1.1.2 - 2": "url/to/file2.patch"
+        }
+        "1.1.*": {
+            "This is patch 1.1.* - 1": "url/to/file1.patch",
+            "This is patch 1.1.* - 2": "url/to/file2.patch"
         }
     }
 }
