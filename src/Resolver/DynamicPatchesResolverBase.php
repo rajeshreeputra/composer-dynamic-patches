@@ -10,7 +10,7 @@ namespace rajeshreeputra\ComposerDynamicPatches\Resolver;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use rajeshreeputra\ComposerDynamicPatches\Patch;
+use cweagans\Composer\Patch;
 use cweagans\Composer\PatchCollection;
 use cweagans\Composer\Resolver\ResolverInterface;
 
@@ -92,19 +92,18 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
                     IOInterface::VERBOSE
                 );
 
-                $temporary_patch_list = [];
+                $temp_patches = [];
 
                 foreach ($patch_defs as $description => $url) {
                     if (is_array($url)) {
-                      foreach ($url as $patchdescription => $patchurl) {
-                        $temporary_patch_list[] = $this->getPatches($package, $patchdescription, $patchurl, $description);
-                      }
-                    }
-                    else {
-                      $temporary_patch_list[] = $this->getPatches($package, $description, $url);
+                        foreach ($url as $patchdescription => $patchurl) {
+                            $temp_patches[] = $this->getPatches($package, $patchdescription, $patchurl, $description);
+                        }
+                    } else {
+                        $temp_patches[] = $this->getPatches($package, $description, $url);
                     }
                 }
-                $patches[$package] = $temporary_patch_list;
+                $patches[$package] = $temp_patches;
             }
         }
 
@@ -133,7 +132,7 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
         $patch->url = $url;
         $patch->description = $description;
         if (!empty($version)) {
-            $patch->version = $version;
+            $patch->extra['version'] = $version;
         }
 
         return $patch;
