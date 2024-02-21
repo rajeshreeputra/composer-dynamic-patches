@@ -2,19 +2,19 @@
 
 /**
  * @file
- * Contains \rajeshreeputra\ComposerDynamicPatching\Resolvers\ResolverBase.
+ * Contains \rajeshreeputra\ComposerDynamicPatches\Resolvers\ResolverBase.
  */
 
-namespace rajeshreeputra\ComposerDynamicPatching\Resolver;
+namespace rajeshreeputra\ComposerDynamicPatches\Resolver;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use rajeshreeputra\ComposerDynamicPatching\Patch;
+use rajeshreeputra\ComposerDynamicPatches\Patch;
 use cweagans\Composer\PatchCollection;
 use cweagans\Composer\Resolver\ResolverInterface;
 
-abstract class DynamicPatchingResolverBase implements ResolverInterface
+abstract class DynamicPatchesResolverBase implements ResolverInterface
 {
     /**
      * The main Composer object.

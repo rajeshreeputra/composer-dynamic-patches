@@ -1,4 +1,4 @@
-# composer-dynamic-patching
+# composer-dynamic-patches
 
 This plugin allows you to provide patches for any package from any package.
 
@@ -135,7 +135,7 @@ I have also added a new folder at the same level as the composer.json called "pa
 +++ b/src/SomeFile.php
 @@ -6,7 +6,7 @@
  	{
- 		// apply patch to 
+ 		// apply patch to
  		// next line
 -		// This is old line
 +		// This is new line

@@ -1,14 +1,14 @@
 <?php
 
-namespace rajeshreeputra\ComposerDynamicPatching\Capability\Resolver;
+namespace rajeshreeputra\ComposerDynamicPatches\Capability\Resolver;
 
 use cweagans\Composer\Resolver\Dependencies;
 use cweagans\Composer\Resolver\PatchesFile;
 use cweagans\Composer\Resolver\RootComposer;
 use cweagans\Composer\Capability\Resolver\BaseResolverProvider;
-use rajeshreeputra\ComposerDynamicPatching\Resolver\DynamicPatchingPatchesFile;
+use rajeshreeputra\ComposerDynamicPatches\Resolver\DynamicPatchesFile;
 
-class DynamicPatchingResolverProvider extends BaseResolverProvider
+class DynamicPatchesResolverProvider extends BaseResolverProvider
 {
     /**
      * @inheritDoc
@@ -16,7 +16,7 @@ class DynamicPatchingResolverProvider extends BaseResolverProvider
     public function getResolvers(): array
     {
         return [
-            new DynamicPatchingPatchesFile($this->composer, $this->io, $this->plugin),
+            new DynamicPatchesFile($this->composer, $this->io, $this->plugin),
         ];
     }
 }

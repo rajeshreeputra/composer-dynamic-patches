@@ -1,6 +1,6 @@
 <?php
 
-namespace rajeshreeputra\ComposerDynamicPatching\Plugin;
+namespace rajeshreeputra\ComposerDynamicPatches\Plugin;
 
 use Composer\Composer;
 use Composer\Plugin\Capable;
@@ -13,7 +13,7 @@ use cweagans\Composer\Capability\Patcher\PatcherProvider;
 use cweagans\Composer\Capability\Resolver\ResolverProvider;
 use cweagans\Composer\ConfigurablePlugin;
 use cweagans\Composer\Locker;
-use rajeshreeputra\ComposerDynamicPatching\Capability\Resolver\DynamicPatchingResolverProvider;
+use rajeshreeputra\ComposerDynamicPatches\Capability\Resolver\DynamicPatchesResolverProvider;
 
 
 class Plugin implements PluginInterface, Capable {
@@ -120,7 +120,7 @@ class Plugin implements PluginInterface, Capable {
               'default' => 'patches.json',
           ]
       ];
-      $this->configure($this->composer->getPackage()->getExtra(), 'composer-dynamic-patching');
+      $this->configure($this->composer->getPackage()->getExtra(), 'composer-dynamic-patches');
     }
 
     /**
@@ -128,7 +128,7 @@ class Plugin implements PluginInterface, Capable {
      */
     public function getCapabilities(): array {
         return [
-            ResolverProvider::class => DynamicPatchingResolverProvider::class
+            ResolverProvider::class => DynamicPatchesResolverProvider::class
         ];
     }
 

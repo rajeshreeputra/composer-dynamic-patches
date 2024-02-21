@@ -1,5 +1,5 @@
 {
-    "name": "rajeshreeputra/composer-dynamic-patching",
+    "name": "rajeshreeputra/composer-dynamic-patches",
     "type": "composer-plugin",
     "description": "Provides a way to patch Composer packages dynamically.",
     "license": "GPL-2.0-or-later",
@@ -23,7 +23,7 @@
         }
     },
     "extra": {
-        "class": "rajeshreeputra\\ComposerDynamicPatching\\Plugin\\Plugin",
+        "class": "rajeshreeputra\\ComposerDynamicPatches\\Plugin\\Plugin",
         "composer-patches": {
           "disable-resolvers": [
               "\\cweagans\\Composer\\Resolver\\PatchesFile",
@@ -34,7 +34,7 @@
     },
     "autoload": {
       "psr-4": {
-        "rajeshreeputra\\ComposerDynamicPatching\\": "src"
+        "rajeshreeputra\\ComposerDynamicPatches\\": "src"
       }
     },
     "minimum-stability": "dev"
