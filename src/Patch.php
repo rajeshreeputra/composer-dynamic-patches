@@ -1,6 +1,6 @@
 <?php
 
-namespace rajeshreeputra\ComposerDynamicPatching;
+namespace rajeshreeputra\ComposerDynamicPatches;
 
 use Composer\Package\PackageInterface;
 use cweagans\Composer\Patch as composerPatch;

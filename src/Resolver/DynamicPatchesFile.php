@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains rajeshreeputra\ComposerDynamicPatching\Resolvers\PatchesFile.
+ * Contains rajeshreeputra\ComposerDynamicPatches\Resolvers\PatchesFile.
  */
 
-namespace rajeshreeputra\ComposerDynamicPatching\Resolver;
+namespace rajeshreeputra\ComposerDynamicPatches\Resolver;
 
 use Composer\Package\Version\VersionParser;
 use Composer\Composer\InstalledVersions;
@@ -13,10 +13,10 @@ use cweagans\Composer\Patch;
 use Composer\IO\IOInterface;
 use Composer\Util\HttpDownloader;
 use cweagans\Composer\PatchCollection;
-use rajeshreeputra\ComposerDynamicPatching\Resolver\DynamicPatchingResolverBase;
+use rajeshreeputra\ComposerDynamicPatches\Resolver\DynamicPatchesResolverBase;
 use InvalidArgumentException;
 
-class DynamicPatchingPatchesFile extends DynamicPatchingResolverBase {
+class DynamicPatchesFile extends DynamicPatchesResolverBase {
     /**
      * {@inheritDoc}
      */

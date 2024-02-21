@@ -1,12 +1,12 @@
 <?php
 
-namespace rajeshreeputra\ComposerDynamicPatching\Capability\Patcher;
+namespace rajeshreeputra\ComposerDynamicPatches\Capability\Patcher;
 
 use cweagans\Composer\Patcher\FreeformPatcher;
 use cweagans\Composer\Patcher\GitPatcher;
 use cweagans\Composer\Patcher\GitInitPatcher;
 
-class DynamicPatchingPatcherProvider extends BasePatcherProvider {
+class DynamicPatchesPatcherProvider extends BasePatcherProvider {
     /**
      * @inheritDoc
      */
