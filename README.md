@@ -75,9 +75,7 @@ You can put any part of the patches object into another JSON and load it via an 
         "vendor/package-patches": "~1.0"
     },
     "extra": {
-        "extra": {
-            "patches-file": "url/to/file/patch.json"
-        }
+        "patches-file": "url/to/file/patch.json"
     }
 }
 ```
