@@ -76,10 +76,7 @@ jobs:
           composer config allow-plugins.rajeshreeputra/composer-dynamic-patches true
           
           # Install the plugin
-          composer require rajeshreeputra/composer-dynamic-patches:dev-stable --no-update
-          
-          # Install all dependencies
-          composer install --prefer-dist --no-progress -vv
+          composer require rajeshreeputra/composer-dynamic-patches:dev-stable
 
       - name: Verify plugin loaded
         run: |
