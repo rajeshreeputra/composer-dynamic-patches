@@ -68,15 +68,15 @@ jobs:
           composer create-project drupal/recommended-project:^10 test-project --no-install
           cd test-project
           
-          # Add the plugin as a path repository
-          composer config repositories.composer-dynamic-patches path ../composer-dynamic-patches
+          # Configure composer to use the local plugin path
+          composer config repositories.composer-dynamic-patches vcs https://github.com/rajeshreeputra/composer-dynamic-patches.git
           
           # Allow plugins
           composer config allow-plugins.cweagans/composer-patches true
           composer config allow-plugins.rajeshreeputra/composer-dynamic-patches true
           
           # Install the plugin
-          composer require rajeshreeputra/composer-dynamic-patches:@dev --no-update
+          composer require rajeshreeputra/composer-dynamic-patches:dev-stable --no-update
           
           # Install all dependencies
           composer install --prefer-dist --no-progress -vv
@@ -100,3 +100,9 @@ jobs:
             echo "❌ Vendor directory not found"
             exit 1
           fi
+
+      - name: Run tests
+        run: composer test
+
+      - name: Run coverage
+        run: composer coverage
