@@ -1,0 +1,52 @@
+{
+    "name": "test/composer-dynamic-patches-test",
+    "description": "Test project for composer-dynamic-patches",
+    "type": "project",
+    "require": {
+        "php": ">=8.0.0",
+        "symfony/console": "^5.4 || ^6.0",
+        "monolog/monolog": "^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../composer-dynamic-patches",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "cweagans/composer-patches": true,
+            "rajeshreeputra/composer-dynamic-patches": true
+        }
+    },
+    "extra": {
+        "patches": {
+            "symfony/console": {
+                "^5.0": {
+                    "Test patch for Symfony Console 5.x": "https://raw.githubusercontent.com/symfony/symfony/5.4/CHANGELOG.md"
+                },
+                "^6.0": {
+                    "Test patch for Symfony Console 6.x": "https://raw.githubusercontent.com/symfony/symfony/6.0/CHANGELOG.md"
+                }
+            },
+            "monolog/monolog": {
+                "Test patch without version constraint": "https://raw.githubusercontent.com/Seldaek/monolog/main/README.md"
+            }
+        },
+        "composer-patches": {
+            "disable-resolvers": [
+                "\\cweagans\\Composer\\Resolver\\PatchesFile",
+                "\\cweagans\\Composer\\Resolver\\RootComposer"
+            ]
+        }
+    }
+}
+

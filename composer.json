@@ -1,7 +1,7 @@
 {
     "name": "rajeshreeputra/composer-dynamic-patches",
     "type": "composer-plugin",
-    "description": "Provides a way to patch Composer packages dynamically.",
+    "description": "Provides a way to patch Composer packages dynamically with version-specific support.",
     "license": "GPL-2.0-or-later",
     "authors": [
         {
@@ -10,32 +10,38 @@
         }
     ],
     "require": {
-        "composer-plugin-api": "^1.0 || ^2.0",
+        "php": ">=8.0.0",
+        "ext-json": "*",
+        "composer-plugin-api": "^2.0",
         "cweagans/composer-patches": "^2.0"
     },
     "require-dev": {
-        "composer/composer": "~1.0 || ~2.0",
+        "composer/composer": "~2.0",
         "phpunit/phpunit": "^9 || ^10"
     },
     "config": {
         "allow-plugins": {
-            "cweagans/composer-patches": true
+            "cweagans/composer-patches": true,
+            "rajeshreeputra/composer-dynamic-patches": true
         }
     },
     "extra": {
         "class": "rajeshreeputra\\ComposerDynamicPatches\\Plugin\\Plugin",
+        "_": "The following two lines ensure proper plugin load order.",
+        "plugin-modifies-downloads": true,
+        "plugin-modifies-install-path": true,
         "composer-patches": {
-          "disable-resolvers": [
-              "\\cweagans\\Composer\\Resolver\\PatchesFile",
-              "\\cweagans\\Composer\\Resolver\\ResolverBase",
-              "\\cweagans\\Composer\\Resolver\\RootComposer"
-          ]
+            "disable-resolvers": [
+                "\\cweagans\\Composer\\Resolver\\PatchesFile",
+                "\\cweagans\\Composer\\Resolver\\RootComposer"
+            ]
         }
     },
     "autoload": {
-      "psr-4": {
-        "rajeshreeputra\\ComposerDynamicPatches\\": "src"
-      }
+        "psr-4": {
+            "rajeshreeputra\\ComposerDynamicPatches\\": "src"
+        }
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

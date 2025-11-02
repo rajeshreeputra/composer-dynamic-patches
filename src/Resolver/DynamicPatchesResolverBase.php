@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \rajeshreeputra\ComposerDynamicPatches\Resolvers\ResolverBase.
+ * Contains \rajeshreeputra\ComposerDynamicPatches\Resolvers\DynamicPatchesResolverBase.
  */
 
 namespace rajeshreeputra\ComposerDynamicPatches\Resolver;
@@ -24,7 +24,7 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
     protected Composer $composer;
 
     /**
-     * An array of operations that will be executed during this composer execution.
+     * An IO interface for output.
      *
      * @var IOInterface
      */
@@ -55,6 +55,11 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
     /**
      * Handles the different patch definition formats and returns a list of Patches.
      *
+     * Supports three formats:
+     * 1. Expanded format: [{"url": "...", "description": "...", "sha256": "...", "depth": 1}]
+     * 2. Compact format: {"description": "url"}
+     * 3. Version-specific format: {"1.0.0": {"description": "url"}, "1.1.*": {"description": "url"}}
+     *
      * @param array $patches
      *   An array of patch defs from composer.json or a patches file.
      *
@@ -68,6 +73,7 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
         // marshall everything into Patch objects.
         foreach ($patches as $package => $patch_defs) {
             if (isset($patch_defs[0]) && is_array($patch_defs[0])) {
+                // Expanded definition format
                 $this->io->write(
                     "    Using expanded definition format for package <info>{$package}</info>",
                     true,
@@ -86,8 +92,9 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
                     $patches[$package][$index] = $patch;
                 }
             } else {
+                // Compact format or version-specific format
                 $this->io->write(
-                    "    Using compact definition format for package <info>{$package}</info>",
+                    "    Using compact/version-specific definition format for package <info>{$package}</info>",
                     true,
                     IOInterface::VERBOSE
                 );
@@ -96,11 +103,13 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
 
                 foreach ($patch_defs as $description => $url) {
                     if (is_array($url)) {
+                        // Version-specific format: {"1.0.0": {"patch desc": "url"}}
                         foreach ($url as $patchdescription => $patchurl) {
-                            $temp_patches[] = $this->getPatches($package, $patchdescription, $patchurl, $description);
+                            $temp_patches[] = $this->createPatch($package, $patchdescription, $patchurl, $description);
                         }
                     } else {
-                        $temp_patches[] = $this->getPatches($package, $description, $url);
+                        // Simple compact format: {"patch desc": "url"}
+                        $temp_patches[] = $this->createPatch($package, $description, $url);
                     }
                 }
                 $patches[$package] = $temp_patches;
@@ -111,26 +120,27 @@ abstract class DynamicPatchesResolverBase implements ResolverInterface
     }
 
     /**
-     * Helper function to create patch object.
+     * Helper function to create a patch object.
      *
-     * @param array $package
+     * @param string $package
      *   The package name.
-     * @param array $description
+     * @param string $description
      *   The patch description.
      * @param string $url
      *   The patch url.
      * @param string $version
-     *   The version of package.
+     *   The version constraint for the package (optional).
      *
-     * @return Patch $patches
-     *   An array of Patch objects.
+     * @return Patch
+     *   A Patch object.
      */
-    public function getPatches(string $package, string $description, string $url, string $version = ''): Patch
+    protected function createPatch(string $package, string $description, string $url, string $version = ''): Patch
     {
         $patch = new Patch();
         $patch->package = $package;
         $patch->url = $url;
         $patch->description = $description;
+
         if (!empty($version)) {
             $patch->extra['version'] = $version;
         }
