@@ -2,17 +2,16 @@
 
 /**
  * @file
- * Contains rajeshreeputra\ComposerDynamicPatches\Resolvers\PatchesFile.
+ * Contains rajeshreeputra\ComposerDynamicPatches\Resolvers\DynamicPatchesFile.
  */
 
 namespace rajeshreeputra\ComposerDynamicPatches\Resolver;
 
+use Composer\Package\PackageInterface;
 use Composer\Package\Version\VersionParser;
-use Composer\Composer\InstalledVersions;
+use Composer\Semver\Semver;
 use cweagans\Composer\Patch;
 use Composer\IO\IOInterface;
-use Composer\Semver\Constraint\Constraint;
-use Composer\Util\HttpDownloader;
 use cweagans\Composer\PatchCollection;
 use rajeshreeputra\ComposerDynamicPatches\Resolver\DynamicPatchesResolverBase;
 use InvalidArgumentException;
@@ -24,23 +23,77 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
      */
     public function resolve(PatchCollection $collection): void
     {
+        $this->io->write('  - <info>Resolving dynamic patches from all installed packages.</info>');
+
         $patches_file = $this->grabAllPatches();
+
+        if (empty($patches_file)) {
+            $this->io->write(
+                '    <info>No dynamic patches found in installed packages.</info>',
+                true,
+                IOInterface::VERBOSE
+            );
+            return;
+        }
+
         $versionParser = new VersionParser();
-        foreach ($this->findPatchesInJson($patches_file) as $package => $patches) {
-            $package_version = \Composer\InstalledVersions::getPrettyVersion($package);
-            $requiredConstraint = new Constraint('==', $package_version);
+
+        foreach ($this->findPatchesInJson($patches_file) as $package_name => $patches) {
+            // Get the installed version of the package
+            $package_version = $this->getInstalledPackageVersion($package_name);
+
+            if ($package_version === null) {
+                $this->io->write(
+                    "    <comment>Package {$package_name} not found in installed packages. Skipping patches.</comment>",
+                    true,
+                    IOInterface::VERBOSE
+                );
+                continue;
+            }
+
+            $this->io->write(
+                "    Processing patches for <info>{$package_name}</info> (version: {$package_version})",
+                true,
+                IOInterface::VERBOSE
+            );
+
             foreach ($patches as $patch) {
+                /** @var Patch $patch */
+
+                // Check if patch has version constraint
                 if (isset($patch->extra['version'])) {
-                    $constraint = $versionParser->parseConstraints($patch->extra['version']);
-                    if (
-                        $constraint->matches($requiredConstraint) ||
-                        (version_compare($package_version, $patch->extra['version']) == 0)
-                    ) {
-                        /** @var Patch $patch */
-                        $collection->addPatch($patch);
+                    $version_constraint = $patch->extra['version'];
+
+                    try {
+                        // Use Semver to check if version matches constraint
+                        if (Semver::satisfies($package_version, $version_constraint)) {
+                            $this->io->write(
+                                "      ✓ Version constraint '{$version_constraint}' matches {$package_version}",
+                                true,
+                                IOInterface::VERY_VERBOSE
+                            );
+                            $patch->extra['provenance'] = "dynamic-patches:version-constraint:{$version_constraint}";
+                            $collection->addPatch($patch);
+                        } else {
+                            $this->io->write(
+                                "      ✗ Version constraint '{$version_constraint}' does not match {$package_version}",
+                                true,
+                                IOInterface::VERY_VERBOSE
+                            );
+                        }
+                    } catch (\Exception $e) {
+                        $this->io->writeError(
+                            "      <error>Invalid version constraint '{$version_constraint}': {$e->getMessage()}</error>"
+                        );
                     }
                 } else {
-                    /** @var Patch $patch */
+                    // No version constraint, apply to all versions
+                    $this->io->write(
+                        "      ✓ No version constraint, applying patch",
+                        true,
+                        IOInterface::VERY_VERBOSE
+                    );
+                    $patch->extra['provenance'] = "dynamic-patches:all-versions";
                     $collection->addPatch($patch);
                 }
             }
@@ -48,78 +101,176 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
     }
 
     /**
-     * {@inheritDoc}
+     * Get the installed version of a package.
+     *
+     * @param string $package_name
+     *   The package name.
+     *
+     * @return string|null
+     *   The installed version or null if not found.
      */
-    public function grabPatches($package)
-    {
-        // First, try to get the patches from the root composer.json.
-        $extra = $package->getExtra();
-        if (isset($extra['patches'])) {
-            $this->io->write('<info>Gathering patches for root package.</info>');
-            $patches = $extra['patches'];
-            return $patches;
-        } elseif (isset($extra['patches-file']) && is_string($extra['patches-file'])) {
-            // If it's not specified there, look for a patches-file definition.
-            $this->io->write('<info>Gathering patches from patch file.</info>');
-            $patches = file_get_contents($extra['patches-file']);
-            $patches = json_decode($patches, true);
-            $error = json_last_error();
-            if ($error != 0) {
-                switch ($error) {
-                    case JSON_ERROR_DEPTH:
-                        $msg = ' - Maximum stack depth exceeded';
-                        break;
-                    case JSON_ERROR_STATE_MISMATCH:
-                        $msg =  ' - Underflow or the modes mismatch';
-                        break;
-                    case JSON_ERROR_CTRL_CHAR:
-                        $msg = ' - Unexpected control character found';
-                        break;
-                    case JSON_ERROR_SYNTAX:
-                        $msg =  ' - Syntax error, malformed JSON';
-                        break;
-                    case JSON_ERROR_UTF8:
-                        $msg =  ' - Malformed UTF-8 characters, possibly incorrectly encoded';
-                        break;
-                    default:
-                        $msg =  ' - Unknown error';
-                        break;
-                }
-                throw new \Exception('There was an error in the supplied patches file:' . $msg);
-            }
-            if (isset($patches['patches'])) {
-                $patches = $patches['patches'];
-                return $patches;
-            } elseif (!$patches) {
-                throw new \Exception('There was an error in the supplied patch file');
-            }
-        } else {
-            return array();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function grabAllPatches()
+    protected function getInstalledPackageVersion(string $package_name): ?string
     {
         try {
             $repositoryManager = $this->composer->getRepositoryManager();
             $localRepository = $repositoryManager->getLocalRepository();
+
+            $package = $localRepository->findPackage($package_name, '*');
+
+            if ($package instanceof PackageInterface) {
+                return $package->getPrettyVersion();
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            $this->io->write(
+                "    <comment>Error getting version for {$package_name}: {$e->getMessage()}</comment>",
+                true,
+                IOInterface::VERBOSE
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Grab patches from a single package.
+     *
+     * @param PackageInterface $package
+     *   The package to grab patches from.
+     *
+     * @return array
+     *   An array of patches.
+     */
+    protected function grabPatches(PackageInterface $package): array
+    {
+        $extra = $package->getExtra();
+
+        // First, try to get patches directly from extra.patches
+        if (isset($extra['patches']) && is_array($extra['patches'])) {
+            $this->io->write(
+                "    <info>Found patches in {$package->getName()}</info>",
+                true,
+                IOInterface::VERBOSE
+            );
+            return $extra['patches'];
+        }
+
+        // Next, try to load from patches-file
+        if (isset($extra['patches-file']) && is_string($extra['patches-file'])) {
+            return $this->loadPatchesFromFile($package, $extra['patches-file']);
+        }
+
+        return [];
+    }
+
+    /**
+     * Load patches from a patches file.
+     *
+     * @param PackageInterface $package
+     *   The package that references the patches file.
+     * @param string $patches_file_path
+     *   The path to the patches file.
+     *
+     * @return array
+     *   An array of patches.
+     */
+    protected function loadPatchesFromFile(PackageInterface $package, string $patches_file_path): array
+    {
+        try {
             $installationManager = $this->composer->getInstallationManager();
+            $packagePath = $installationManager->getInstallPath($package);
+
+            if (!$packagePath) {
+                throw new InvalidArgumentException("Could not determine install path for {$package->getName()}");
+            }
+
+            $fullPath = $packagePath . '/' . $patches_file_path;
+
+            if (!file_exists($fullPath) || !is_readable($fullPath)) {
+                $this->io->writeError(
+                    "    <error>Patches file not found or not readable: {$fullPath}</error>"
+                );
+                return [];
+            }
+
+            $this->io->write(
+                "    <info>Loading patches from file: {$patches_file_path} in {$package->getName()}</info>",
+                true,
+                IOInterface::VERBOSE
+            );
+
+            $content = file_get_contents($fullPath);
+            $patches = json_decode($content, true);
+
+            // Check for JSON errors
+            $json_error = json_last_error();
+            if ($json_error !== JSON_ERROR_NONE) {
+                $msg = json_last_error_msg();
+                throw new InvalidArgumentException(
+                    "JSON decode error in {$fullPath}: {$msg}"
+                );
+            }
+
+            // Support both formats: {"patches": {...}} and direct patch array
+            if (isset($patches['patches']) && is_array($patches['patches'])) {
+                return $patches['patches'];
+            } elseif (is_array($patches)) {
+                return $patches;
+            }
+
+            throw new InvalidArgumentException("Invalid patches file format in {$fullPath}");
+
+        } catch (\Exception $e) {
+            $this->io->writeError(
+                "    <error>Error loading patches file from {$package->getName()}: {$e->getMessage()}</error>"
+            );
+            return [];
+        }
+    }
+
+    /**
+     * Grab all patches from all installed packages.
+     *
+     * @return array
+     *   An array of all patches keyed by package name.
+     */
+    protected function grabAllPatches(): array
+    {
+        try {
+            $repositoryManager = $this->composer->getRepositoryManager();
+            $localRepository = $repositoryManager->getLocalRepository();
             $packages = $localRepository->getPackages();
+
             $allPatches = [];
+
             foreach ($packages as $package) {
                 $patches = $this->grabPatches($package);
-                if ($patches) {
-                    $allPatches = $this->mergeDeep($allPatches, $patches);
+
+                if (!empty($patches)) {
+                    $allPatches = $this->mergeDeepArray([$allPatches, $patches], false);
                 }
             }
+
+            // Also check root package
+            $rootPackage = $this->composer->getPackage();
+            $rootPatches = $this->grabPatches($rootPackage);
+
+            if (!empty($rootPatches)) {
+                $this->io->write(
+                    "    <info>Found patches in root package</info>",
+                    true,
+                    IOInterface::VERBOSE
+                );
+                $allPatches = $this->mergeDeepArray([$allPatches, $rootPatches], false);
+            }
+
             return $allPatches;
-        } catch (\LogicException $e) {
-            // If the Locker isn't available, then we don't need to do this.
-            // It's the first time packages have been installed.
-            return;
+
+        } catch (\Exception $e) {
+            $this->io->writeError(
+                "  <error>Error gathering patches: {$e->getMessage()}</error>"
+            );
+            return [];
         }
     }
 
@@ -130,70 +281,6 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
      * handles non-array values differently. When merging values that are not both
      * arrays, the latter value replaces the former rather than merging with it.
      *
-     * Example:
-     * @code
-     * $link_options_1 = [
-     *  'fragment' => 'x',
-     *  'attributes' => [
-     *    'title' => t('X'),
-     *    'class' => ['a', 'b']
-     *  ]
-     * ];
-     * $link_options_1 = [
-     *  'fragment' => 'x',
-     *  'attributes' => [
-     *    'title' => t('X'),
-     *    'class' => ['c', 'd']
-     *  ]
-     * ];
-     *
-     * // This results in [
-     *  'fragment' => ['x', 'y'],
-     *  'attributes' => [
-     *    'title' => [t('X'), t('Y')],
-     *    'class' => ['a', 'b', 'c', 'd']
-     *  ]
-     * ].
-     * $incorrect = array_merge_recursive($link_options_1, $link_options_2);
-     *
-     * // This results in [
-     *  'fragment' => 'y',
-     *  'attributes' => [
-     *    'title' => t('Y'),
-     *    'class' => ['a', 'b', 'c', 'd']
-     *  ]
-     * ].
-     * $correct = NestedArray::mergeDeep($link_options_1, $link_options_2);
-     * @endcode
-     *
-     * @param array ...
-     *   Arrays to merge.
-     *
-     * @return array
-     *   The merged array.
-     *
-     * @see NestedArray::mergeDeepArray()
-     */
-    public static function mergeDeep()
-    {
-        return self::mergeDeepArray(func_get_args());
-    }
-
-    /**
-     * Merges multiple arrays, recursively, and returns the merged array.
-     *
-     * This function is equivalent to NestedArray::mergeDeep(), except the
-     * input arrays are passed as a single array parameter rather than a variable
-     * parameter list.
-     *
-     * The following are equivalent:
-     * - NestedArray::mergeDeep($a, $b);
-     * - NestedArray::mergeDeepArray(array($a, $b));
-     *
-     * The following are also equivalent:
-     * - call_user_func_array('NestedArray::mergeDeep', $arrays_to_merge);
-     * - NestedArray::mergeDeepArray($arrays_to_merge);
-     *
      * @param array $arrays
      *   An arrays of arrays to merge.
      * @param bool $preserve_integer_keys
@@ -202,17 +289,19 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
      *
      * @return array
      *   The merged array.
-     *
-     * @see NestedArray::mergeDeep()
      */
-    public static function mergeDeepArray(array $arrays, $preserve_integer_keys = false)
+    protected static function mergeDeepArray(array $arrays, bool $preserve_integer_keys = false): array
     {
         $result = [];
+
         foreach ($arrays as $array) {
+            if (!is_array($array)) {
+                continue;
+            }
+
             foreach ($array as $key => $value) {
                 // Renumber integer keys as array_merge_recursive() does unless
-                // $preserve_integer_keys is set to TRUE. Note that PHP automatically
-                // converts array keys that are integer strings (e.g., '1') to integers.
+                // $preserve_integer_keys is set to TRUE.
                 if (is_int($key) && !$preserve_integer_keys) {
                     $result[] = $value;
                 } elseif (isset($result[$key]) && is_array($result[$key]) && is_array($value)) {
@@ -224,6 +313,7 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
                 }
             }
         }
+
         return $result;
     }
 }
