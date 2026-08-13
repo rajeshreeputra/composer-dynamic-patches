@@ -39,20 +39,8 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
         $versionParser = new VersionParser();
 
         foreach ($this->findPatchesInJson($patches_file) as $package_name => $patches) {
-            // Get the installed version of the package
-            $package_version = $this->getInstalledPackageVersion($package_name);
-
-            if ($package_version === null) {
-                $this->io->write(
-                    "    <comment>Package {$package_name} not found in installed packages. Skipping patches.</comment>",
-                    true,
-                    IOInterface::VERBOSE
-                );
-                continue;
-            }
-
             $this->io->write(
-                "    Processing patches for <info>{$package_name}</info> (version: {$package_version})",
+                "    Processing patches for <info>{$package_name}</info>",
                 true,
                 IOInterface::VERBOSE
             );
@@ -63,6 +51,18 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
                 // Check if patch has version constraint
                 if (isset($patch->extra['version'])) {
                     $version_constraint = $patch->extra['version'];
+
+                    // Get the installed version of the package.
+                    $package_version = $this->getInstalledPackageVersion($package_name);
+
+                    if ($package_version === null) {
+                        $this->io->write(
+                            "    <comment>Package {$package_name} not found in installed packages. Skipping version-constrained patch.</comment>",
+                            true,
+                            IOInterface::VERBOSE
+                        );
+                        continue;
+                    }
 
                     try {
                         // Use Semver to check if version matches constraint
@@ -119,6 +119,18 @@ class DynamicPatchesFile extends DynamicPatchesResolverBase
 
             if ($package instanceof PackageInterface) {
                 return $package->getPrettyVersion();
+            }
+
+            // The package may not be in the local repository yet (e.g. when it is
+            // being installed or reinstalled right now). Fall back to the version
+            // recorded in composer.lock so that version-constrained patches can
+            // still be resolved and applied.
+            $locker = $this->composer->getLocker();
+            if ($locker && $locker->isLocked()) {
+                $lockedPackage = $locker->getLockedRepository()->findPackage($package_name, '*');
+                if ($lockedPackage instanceof PackageInterface) {
+                    return $lockedPackage->getPrettyVersion();
+                }
             }
 
             return null;
