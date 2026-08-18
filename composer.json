@@ -17,7 +17,7 @@
     },
     "require-dev": {
         "composer/composer": "~2.0",
-        "phpunit/phpunit": "^9 || ^10"
+        "phpunit/phpunit": ">=9"
     },
     "config": {
         "allow-plugins": {
